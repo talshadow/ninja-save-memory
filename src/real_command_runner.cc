@@ -75,8 +75,9 @@ size_t RealCommandRunner::CanRunMore() const {
   }
 
   //this just pause the creation of new processes when we run out of ram
-  if (config_.desired_free_ram > 0) {
-    long memory_capacity = GetFreeMemory() / config_.desired_free_ram;
+  if (config_.safe_parallelism > 0) {
+    long memory_capacity =
+        GetJobsWithKeepMamory(config_.safe_parallelism, config_.parallelism, subproc_number);
     if (memory_capacity < capacity)
       capacity = memory_capacity;
   }
@@ -87,7 +88,6 @@ size_t RealCommandRunner::CanRunMore() const {
   if (capacity == 0 && subprocs_.running_.empty())
     // Ensure that we make progress.
     capacity = 1;
-
   return capacity;
 }
 

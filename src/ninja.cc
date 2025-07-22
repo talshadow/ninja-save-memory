@@ -247,7 +247,7 @@ void Usage(const BuildConfig& config) {
 "  -t TOOL  run a subtool (use '-t list' to list subtools)\n"
 "    terminates toplevel options; further flags are passed to the tool\n"
 "  -w FLAG  adjust warnings (use '-w list' to list warnings)\n"
-"  --keep-free-memory AMOUNT the amount of ram required to start a job\n",
+"  --safe-parallelism Count  - the count of jobs to save build based by mamory\n",
           kNinjaVersion, config.parallelism);
 }
 
@@ -1708,13 +1708,13 @@ int ReadFlags(int* argc, char*** argv,
               Options* options, BuildConfig* config) {
   DeferGuessParallelism deferGuessParallelism(config);
 
-  enum { OPT_VERSION = 1, OPT_QUIET = 2, OPT_FREE_MEM = 3 };
+  enum { OPT_VERSION = 1, OPT_QUIET = 2, OPT_SAFE_PARALLELISM = 3 };
   const option kLongOptions[] = {
     { "help", no_argument, NULL, 'h' },
     { "version", no_argument, NULL, OPT_VERSION },
     { "verbose", no_argument, NULL, 'v' },
     { "quiet", no_argument, NULL, OPT_QUIET },
-    { "keep-free-memory", required_argument, NULL, OPT_FREE_MEM},
+    { "safe-parallelism", required_argument, NULL, OPT_SAFE_PARALLELISM},
     { NULL, 0, NULL, 0 }
   };
 
@@ -1790,17 +1790,13 @@ int ReadFlags(int* argc, char*** argv,
       case OPT_VERSION:
         printf("%s\n", kNinjaVersion);
         return 0;
-      case OPT_FREE_MEM: {
+      case OPT_SAFE_PARALLELISM: {
         char * end;
         long value = strtol(optarg, &end, 10);
-        long multiplier = GetUnitToByteRatio(*end);
-        value *= multiplier;
         //last char was the unit
-        if(multiplier > 0)
-          end++;
-        if (*end != 0 || value < 0 || multiplier == 0)
-          Fatal("invalid --keep-free-memory parameter");
-        config->desired_free_ram = value;
+        if (*end != 0 || value < 0 )
+          Fatal("invalid --safe-parallelism parameter");
+        config->safe_parallelism = value;
         break;
       }
       case 'h':

@@ -152,6 +152,8 @@ add_library(libninja OBJECT
 	src/string_piece_util.cc
 	src/util.cc
 	src/version.cc
+	src/meminfo.cc
+	src/safejobmanager.cc
 )
 if(WIN32)
 	target_sources(libninja PRIVATE

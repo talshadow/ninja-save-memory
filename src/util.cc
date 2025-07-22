@@ -43,6 +43,8 @@
 #include <algorithm>
 #include <vector>
 #include <climits>
+#include <iostream>
+#include <chrono>
 
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/sysctl.h>
@@ -64,6 +66,8 @@
 #endif
 
 #include "edit_distance.h"
+#include "meminfo.h"
+#include "safejobmanager.h"
 
 using namespace std;
 
@@ -1077,15 +1081,39 @@ long GetFreeMemory() {
   return free_memory - (used_swap - swapped_idle);
 }
 #elif defined(__linux__)
-long GetFreeMemory() {
-  static long swapped_idle = LONG_MAX;
-  struct sysinfo infos;
-  sysinfo(&infos);
-  const long swapped = (infos.totalswap - infos.freeswap);
-  //since system use commited memory normaly, we store the smallest amount we have seen to guess how much
-  // paging is non-ninja related
-  swapped_idle = std::min(swapped_idle, swapped);
-  return infos.freeram - (swapped - swapped_idle);
+long GetJobsWithKeepMamory(int safeParalelism, int defaultParalelism,
+                           int currentParalelism) {
+  static SafeJobManager sManager(safeParalelism, defaultParalelism);
+  return sManager.GetExtraParalelism(currentParalelism);
+
+  /*sManager.updateSafeStatus(currentParalelism);
+  MemInfo memoryInfo;
+  static const auto sUsedMemory = GetMemoryUsed(memoryInfo);
+  static const auto sMaxMemory =
+      GetMaximumMemoryForNinja(memoryInfo, keepMemory);
+  static const auto sMemoryPerCore = GetMemoryForCore(memoryInfo);
+  static const auto sCoreAmount = GetProcessorCount();
+  static JobManager sManager;
+  sManager.updateSafeStatus(currentJobAmount);
+  auto usedMemory = GetMemoryUsed(memoryInfo);
+  auto currentMemoryPerJob =
+      (usedMemory - sUsedMemory) / std::max(currentJobAmount, 1);
+  auto jobsCount = GetJobAmount(memoryInfo, sMaxMemory,
+                                std::max(sMemoryPerCore, currentMemoryPerJob));
+  sManager.suggestUpdateJobCount(currentJobAmount, jobsCount);
+  if (sManager.maxJobs() <= currentJobAmount) {
+    jobsCount = 0;
+  } else if (currentJobAmount + jobsCount > sManager.maxJobs()) {
+    jobsCount =  sManager.maxJobs() - currentJobAmount;
+  }
+
+  std::cout << "\nMax Memory: " << sMaxMemory << " usedMemory: " << usedMemory
+            << " FreeMemory: " << memoryInfo.m_memFree
+            << " MemoryPerCore: " << sMemoryPerCore
+            << " MaxJobs: " << sManager.maxJobs()
+            << " jobsCount: " << jobsCount << "\n";
+  return jobsCount;*/
+
 }
 #else
 long GetFreeMemory() {
